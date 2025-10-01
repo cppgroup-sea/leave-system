@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกวันลา</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .app-container { max-width: 900px; margin: auto; }
+        .view-container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .login-container { max-width: 400px; margin: 50px auto; }
+        .nav-links { display: flex; justify-content: space-between; margin-top: 20px; border-top: 1px solid #dee2e6; padding-top: 15px; }
+        .status-pending { background-color: #fff3cd; } .status-approved { background-color: #d4edda; } .status-rejected { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <div class="app-container" id="app">
+        </div>
+
+<script>
+    // ##################################################################
+    // ##  สำคัญ! นำ URL ที่ได้จากการ Deploy Backend มาวางที่นี่         ##
+    // ##################################################################
+    const API_URL = "https://script.google.com/macros/s/AKfycbxwLvIiL2iMGo7QT8-LqMk3APKKhuj6lvn08RvjOM87Yg8GlWGvTdqEplFB6MpQ8_qu/exec";
+
+    let session = {
+        token: null,
+        user: null
+    };
+
+    // --- API Call Helper ---
+    async function apiCall(action, payload = {}) {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: action,
+                token: session.token,
+                ...payload
+            }),
+            redirect: 'follow'
+        });
+        const result = await response.json();
+        if (result.status === 'error') {
+            throw new Error(result.message);
+        }
+        return result.data;
+    }
+
+    // --- Views / Templates ---
+    function renderLoginView(error = '') {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="view-container login-container">
+                <h2>ระบบบันทึกวันลา</h2>
+                <form id="loginForm">
+                    <div class="form-group"><label for="email">อีเมลพนักงาน</label><input type="email" class="form-control" id="email" required></div>
+                    <div class="form-group"><label for="pin">รหัส PIN</label><input type="password" class="form-control" id="pin" required></div>
+                    ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
+                    <button type="submit" id="loginBtn" class="btn btn-primary btn-block">เข้าสู่ระบบ</button>
+                </form>
+            </div>
+        `;
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    }
+
+    function renderLeaveFormView() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="view-container">
+                <div class="d-flex justify-content-between align-items-center"><h2>📝 แบบฟอร์มยื่นใบลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+                <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
+                <p>ส่วนของฟอร์มยื่นใบลาจะแสดงที่นี่</p>
+                <div class="nav-links">
+                    ${session.user.isManager ? '<a href="#" onclick="renderDashboardView()">ไปที่หน้าแดชบอร์ด</a>' : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderDashboardView() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="view-container">
+                 <div class="d-flex justify-content-between align-items-center"><h2>👑 แดชบอร์ดอนุมัติวันลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
+                 <div class="table-responsive"><table class="table"><thead class="thead-dark"><tr><th>พนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody id="dashboard-body"><tr><td colspan="3">กำลังโหลด...</td></tr></tbody></table></div>
+                 <div class="nav-links"><a href="#" onclick="renderLeaveFormView()">กลับไปหน้าฟอร์มยื่นลา</a></div>
+            </div>
+        `;
+        loadDashboardData();
+    }
+
+    // --- Event Handlers & Logic ---
+    async function handleLogin(e) {
+        e.preventDefault();
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.disabled = true;
+        loginBtn.innerText = "กำลังตรวจสอบ...";
+        try {
+            const email = document.getElementById('email').value;
+            const pin = document.getElementById('pin').value;
+            const data = await apiCall('loginWithPin', { email, pin });
+            session.token = data.token;
+            session.user = data;
+            renderLeaveFormView();
+        } catch (error) {
+            renderLoginView(error.message);
+        }
+    }
+    
+    async function loadDashboardData() {
+        try {
+            const requests = await apiCall('getDashboardData');
+            const tbody = document.getElementById('dashboard-body');
+            tbody.innerHTML = '';
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center">ไม่พบข้อมูล</td></tr>';
+                return;
+            }
+            requests.forEach(req => {
+                tbody.innerHTML += `<tr><td>${req.EmployeeName}</td><td>${req.LeaveType}</td><td>${req.Status}</td></tr>`;
+            });
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    function logout() {
+        session.token = null;
+        session.user = null;
+        renderLoginView();
+    }
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        renderLoginView();
+    });
+</script>
+</body>
+</html>
