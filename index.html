@@ -11,7 +11,10 @@
         .view-container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .login-container { max-width: 400px; margin: 50px auto; }
         .nav-links { display: flex; justify-content: space-between; margin-top: 20px; border-top: 1px solid #dee2e6; padding-top: 15px; }
-        .status-pending { background-color: #fff3cd; } .status-approved { background-color: #d4edda; } .status-rejected { background-color: #f8d7da; }
+        .status-pending { background-color: #fff3cd; } 
+        .status-manager-approved { background-color: #cce5ff; }
+        .status-approved { background-color: #d4edda; } 
+        .status-rejected { background-color: #f8d7da; }
     </style>
 </head>
 <body>
@@ -22,7 +25,7 @@
     // ##################################################################
     // ##  สำคัญ! นำ URL ที่ได้จากการ Deploy Backend มาวางที่นี่         ##
     // ##################################################################
-    const API_URL = "https://script.google.com/macros/s/AKfycbyrwA39_GKoqUWw03uhWlapnie4lqanMCckAJxATFKxrQvOQjO2s7YPegv-aC_tk6aQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxbOHWosgK4VIy54rPSNO3UDb8zud6mkCq8ck04Awc9Vm7EJp3woW5hy4CfrXjGnHjG/exec";
 
     let session = { token: null, user: null };
 
@@ -192,21 +195,25 @@
                 
                 let actionButtons = '';
                 if (session.user.isHR && status !== 'Rejected') {
-                    // HR can action Pending and Approved requests
                     actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
                 } else if (!session.user.isHR && status === 'Pending') {
-                    // Managers can only action Pending requests
                     actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
                 }
 
                 const row = document.createElement('tr');
-                row.className = `status-${status.toLowerCase()}`;
+                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+                
+                let statusBadge = 'warning';
+                if (status === 'Approved') statusBadge = 'success';
+                if (status === 'Rejected') statusBadge = 'danger';
+                if (status === 'Manager Approved') statusBadge = 'primary';
+
                 row.innerHTML = `
                     <td>${req.EmployeeName || 'N/A'}</td>
                     <td>${req.LeaveType || 'N/A'}</td>
                     <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
                     <td>${req.TotalDays || 'N/A'}</td>
-                    <td><span class="badge badge-${status === 'Approved' ? 'success' : status === 'Rejected' ? 'danger' : 'warning'}">${status}</span></td>
+                    <td><span class="badge badge-${statusBadge}">${status}</span></td>
                     <td>${actionButtons}</td>
                 `;
                 tbody.appendChild(row);
@@ -225,7 +232,7 @@
         } catch(error) {
             alert(error.message);
         } finally {
-            loadDashboardData(); // Refresh the dashboard
+            loadDashboardData();
         }
     }
 
@@ -258,4 +265,3 @@
 </script>
 </body>
 </html>
-
