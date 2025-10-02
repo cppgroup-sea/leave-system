@@ -29,7 +29,7 @@
         </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxphk17r__hAHbGaHCipCSxlMnONK1jNicl0JsCdHd3Ukd5UofyFB1o7DUuIvEI6lhq/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxbesAiVykHBtwY1yQ2FWNPIjLentJPE-12n39RKBXVNI8nYZiNiN_txDJEqkUJiK16/exec";
     let session = { token: null, user: null };
 
     async function apiCall(action, payload = {}) {
@@ -83,10 +83,11 @@
                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
                 <div id="leave-balance" class="card mb-3"><div class="card-body">กำลังโหลดโควตาวันลา...</div></div>
                 <form id="leaveForm">
+                    <div class="form-group"><label>ช่วงเวลาที่ลา:</label><br><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="full_day" value="full_day" checked><label class="form-check-label" for="full_day">เต็มวัน</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="half_day_morning" value="half_day_morning"><label class="form-check-label" for="half_day_morning">ครึ่งวันเช้า</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="half_day_afternoon" value="half_day_afternoon"><label class="form-check-label" for="half_day_afternoon">ครึ่งวันบ่าย</label></div></div>
                     <div class="form-group"><label for="leaveType">ประเภทการลา</label><select id="leaveType" class="form-control" required><option value="">-- เลือกประเภท --</option><option value="ลากิจ">ลากิจ</option><option value="ลาพักร้อน">ลาพักร้อน</option><option value="ลาป่วย">ลาป่วย</option></select></div>
                     <div class="form-row">
-                        <div class="form-group col-md-6"><label for="startDate">วันที่เริ่มลา</label><input type="date" class="form-control" id="startDate" required></div>
-                        <div class="form-group col-md-6"><label for="endDate">วันที่สิ้นสุด</label><input type="date" class="form-control" id="endDate" required></div>
+                        <div class="form-group col-md-6"><label for="startDate">วันที่ลา</label><input type="date" class="form-control" id="startDate" required></div>
+                        <div class="form-group col-md-6" id="end-date-group"><label for="endDate">ถึงวันที่</label><input type="date" class="form-control" id="endDate" required></div>
                     </div>
                     <div class="form-group"><label for="reason">เหตุผลการลา</label><textarea class="form-control" id="reason" rows="3" required></textarea></div>
                     <button type="submit" id="submitBtn" class="btn btn-primary btn-block">ส่งคำขอ</button>
@@ -98,6 +99,19 @@
             </div>
         `;
         document.getElementById('leaveForm').addEventListener('submit', handleLeaveSubmit);
+        document.getElementsByName('leavePeriod').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const endDateGroup = document.getElementById('end-date-group');
+                const startDateLabel = document.querySelector('label[for="startDate"]');
+                if (this.value === 'full_day') {
+                    endDateGroup.style.display = 'block';
+                    startDateLabel.innerText = 'วันที่เริ่มลา';
+                } else {
+                    endDateGroup.style.display = 'none';
+                    startDateLabel.innerText = 'วันที่ลา';
+                }
+            });
+        });
         loadLeaveBalance();
     }
     
@@ -108,10 +122,7 @@
             <div class="view-container">
                  <div class="d-flex justify-content-between align-items-center">
                     <h2>${title}</h2>
-                    <div>
-                        ${session.user.isHR ? '<button class="btn btn-info btn-sm mr-2" onclick="renderCalendarView()">ดูปฏิทิน</button>' : ''}
-                        <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
-                    </div>
+                    <div>${session.user.isHR ? '<button class="btn btn-info btn-sm mr-2" onclick="renderCalendarView()">ดูปฏิทิน</button>' : ''}<button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                  </div>
                  <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
                  <div id="dashboardMessage" class="mt-3"></div>
@@ -132,18 +143,15 @@
         const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         const currentMonth = date.getMonth();
         const currentYear = date.getFullYear();
-
         app.innerHTML = `
             <div class="view-container">
-                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา 📅</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                 <div class="d-flex justify-content-between align-items-center my-3">
                     <button id="prev-month" class="btn btn-secondary">‹ เดือนก่อน</button>
                     <h4>${monthNames[currentMonth]} ${currentYear + 543}</h4>
                     <button id="next-month" class="btn btn-secondary">เดือนถัดไป ›</button>
                 </div>
-                <div class="calendar">
-                    <div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div>
-                </div>
+                <div class="calendar"><div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div></div>
                 <div class="nav-links"><a href="#" onclick="renderDashboardView()">กลับไปหน้าตาราง</a></div>
             </div>
         `;
@@ -177,8 +185,7 @@
     async function handleLogin(e) {
         e.preventDefault();
         const loginBtn = document.getElementById('loginBtn');
-        loginBtn.disabled = true;
-        loginBtn.innerText = "กำลังตรวจสอบ...";
+        loginBtn.disabled = true; loginBtn.innerText = "กำลังตรวจสอบ...";
         try {
             const email = document.getElementById('email').value;
             const pin = document.getElementById('pin').value;
@@ -195,7 +202,7 @@
         const statusMessage = document.getElementById('statusMessage');
         submitBtn.disabled = true; submitBtn.innerText = "กำลังส่ง..."; statusMessage.innerHTML = '';
         try {
-            const formData = { startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value, leaveType: document.getElementById('leaveType').value, reason: document.getElementById('reason').value };
+            const formData = { startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value, leaveType: document.getElementById('leaveType').value, reason: document.getElementById('reason').value, leavePeriod: document.querySelector('input[name="leavePeriod"]:checked').value };
             const result = await apiCall('submitLeaveRequest', { formData });
             statusMessage.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
             document.getElementById('leaveForm').reset();
@@ -216,9 +223,9 @@
             requests.forEach(req => {
                 const status = req.Status || 'N/A';
                 let actionButtons = '';
-                if (session.user.isHR && (status === 'Pending' || status === 'Manager Approved')) {
-                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
-                } else if (!session.user.isHR && status === 'Pending') {
+                const isManagerActionable = !session.user.isHR && status === 'Pending';
+                const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
+                if (isManagerActionable || isHRActionable) {
                     actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
                 }
                 const row = document.createElement('tr');
@@ -227,7 +234,16 @@
                 if (status === 'Approved') statusBadge = 'success';
                 if (status === 'Rejected') statusBadge = 'danger';
                 if (status === 'Manager Approved') statusBadge = 'primary';
-                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}</td><td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
+
+                let periodText = "";
+                if (req.LeavePeriod === 'half_day_morning') periodText = " (ครึ่งเช้า)";
+                if (req.LeavePeriod === 'half_day_afternoon') periodText = " (ครึ่งบ่าย)";
+                let dateDisplay = req.StartDate;
+                if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
+                    dateDisplay = `${req.StartDate} - ${req.EndDate}`;
+                }
+
+                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load dashboard data: ' + error.message); }
