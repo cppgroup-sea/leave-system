@@ -22,42 +22,42 @@
     // ##################################################################
     // ##  สำคัญ! นำ URL ที่ได้จากการ Deploy Backend มาวางที่นี่         ##
     // ##################################################################
-    const API_URL = "https://script.google.com/macros/s/AKfycbx-yZs1oAm0cPeinmtmKcBM8RcXn2cXP9kypYOJT37ig0mc61W0UCOhsyyeyB1SEqZE/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbw38bjx9MCU3tmVLZfoH5SDTBaHsLORDzqho29F6OHQdmP5RrsP7MIPPFpksOPgbnJZ/exec";
 
-    let session = {
-        token: null,
-        user: null
-    };
+    let session = { token: null, user: null };
 
-    // --- API Call Helper ---
-   async function apiCall(action, payload = {}) {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      document.body.removeChild(script);
-      if (data.status === 'error') {
-        reject(new Error(data.message));
-      } else {
-        resolve(data.data);
-      }
-    };
-
-    const script = document.createElement('script');
-    let queryString = `?callback=${callbackName}&action=${action}`;
-    for (const key in payload) {
-      queryString += `&${key}=${encodeURIComponent(payload[key])}`;
+    // --- API Call Helper (JSONP) ---
+    async function apiCall(action, payload = {}) {
+      return new Promise((resolve, reject) => {
+        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+        window[callbackName] = function(res) {
+          delete window[callbackName];
+          document.body.removeChild(script);
+          if (res.status === 'error') {
+            reject(new Error(res.message));
+          } else {
+            resolve(res.data);
+          }
+        };
+        const script = document.createElement('script');
+        let queryString = `?callback=${callbackName}&action=${action}`;
+        for (const key in payload) {
+            // Special handling for nested objects like formData
+            if (typeof payload[key] === 'object' && payload[key] !== null) {
+                 queryString += `&${key}=${encodeURIComponent(JSON.stringify(payload[key]))}`;
+            } else {
+                 queryString += `&${key}=${encodeURIComponent(payload[key])}`;
+            }
+        }
+        if (session.token) { queryString += `&token=${encodeURIComponent(session.token)}`; }
+        script.src = API_URL + queryString;
+        script.onerror = () => reject(new Error('Failed to load API script. Check API_URL and deployment settings.'));
+        document.body.appendChild(script);
+      });
     }
-    if (session.token) {
-        queryString += `&token=${encodeURIComponent(session.token)}`;
-    }
-    
-    script.src = API_URL + queryString;
-    script.onerror = () => reject(new Error('Failed to load API script.'));
-    document.body.appendChild(script);
-  });
-}
-    // --- Views / Templates ---
+
+    // --- VIEWS / TEMPLATES ---
+
     function renderLoginView(error = '') {
         const app = document.getElementById('app');
         app.innerHTML = `
@@ -78,14 +78,27 @@
         const app = document.getElementById('app');
         app.innerHTML = `
             <div class="view-container">
-                <div class="d-flex justify-content-between align-items-center"><h2>📝 แบบฟอร์มยื่นใบลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2>📝 แบบฟอร์มยื่นใบลา</h2>
+                    <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+                </div>
                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
-                <p>ส่วนของฟอร์มยื่นใบลาจะแสดงที่นี่</p>
+                <form id="leaveForm">
+                    <div class="form-group"><label for="leaveType">ประเภทการลา</label><select id="leaveType" class="form-control" required><option value="">-- เลือกประเภท --</option><option value="ลากิจ">ลากิจ</option><option value="ลาพักร้อน">ลาพักร้อน</option><option value="ลาป่วย">ลาป่วย</option></select></div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6"><label for="startDate">วันที่เริ่มลา</label><input type="date" class="form-control" id="startDate" required></div>
+                        <div class="form-group col-md-6"><label for="endDate">วันที่สิ้นสุด</label><input type="date" class="form-control" id="endDate" required></div>
+                    </div>
+                    <div class="form-group"><label for="reason">เหตุผลการลา</label><textarea class="form-control" id="reason" rows="3" required></textarea></div>
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-block">ส่งคำขอ</button>
+                </form>
+                <div id="statusMessage" class="mt-3"></div>
                 <div class="nav-links">
                     ${session.user.isManager ? '<a href="#" onclick="renderDashboardView()">ไปที่หน้าแดชบอร์ด</a>' : ''}
                 </div>
             </div>
         `;
+        document.getElementById('leaveForm').addEventListener('submit', handleLeaveSubmit);
     }
     
     function renderDashboardView() {
@@ -94,14 +107,21 @@
             <div class="view-container">
                  <div class="d-flex justify-content-between align-items-center"><h2>👑 แดชบอร์ดอนุมัติวันลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                  <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
-                 <div class="table-responsive"><table class="table"><thead class="thead-dark"><tr><th>พนักงาน</th><th>ประเภท</th><th>สถานะ</th></tr></thead><tbody id="dashboard-body"><tr><td colspan="3">กำลังโหลด...</td></tr></tbody></table></div>
+                 <div id="dashboardMessage" class="mt-3"></div>
+                 <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark"><tr><th>พนักงาน</th><th>ประเภท</th><th>ช่วงวันที่ลา</th><th>สถานะ</th><th>การจัดการ</th></tr></thead>
+                        <tbody id="dashboard-body"><tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr></tbody>
+                    </table>
+                 </div>
                  <div class="nav-links"><a href="#" onclick="renderLeaveFormView()">กลับไปหน้าฟอร์มยื่นลา</a></div>
             </div>
         `;
         loadDashboardData();
     }
 
-    // --- Event Handlers & Logic ---
+    // --- LOGIC & EVENT HANDLERS ---
+    
     async function handleLogin(e) {
         e.preventDefault();
         const loginBtn = document.getElementById('loginBtn');
@@ -119,20 +139,71 @@
         }
     }
     
+    async function handleLeaveSubmit(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "กำลังส่ง...";
+        statusMessage.innerHTML = '';
+        try {
+            const formData = {
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                leaveType: document.getElementById('leaveType').value,
+                reason: document.getElementById('reason').value
+            };
+            const result = await apiCall('submitLeaveRequest', { formData });
+            statusMessage.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            document.getElementById('leaveForm').reset();
+        } catch (error) {
+            statusMessage.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "ส่งคำขอ";
+        }
+    }
+
     async function loadDashboardData() {
         try {
             const requests = await apiCall('getDashboardData');
             const tbody = document.getElementById('dashboard-body');
             tbody.innerHTML = '';
             if (requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center">ไม่พบข้อมูล</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">ไม่พบข้อมูลการลาที่รออนุมัติ</td></tr>';
                 return;
             }
+            requests.sort((a, b) => (a.Status === 'Pending' ? -1 : 1));
             requests.forEach(req => {
-                tbody.innerHTML += `<tr><td>${req.EmployeeName}</td><td>${req.LeaveType}</td><td>${req.Status}</td></tr>`;
+                const actionButtons = req.Status === 'Pending'
+                    ? `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`
+                    : '';
+                const row = document.createElement('tr');
+                row.className = `status-${req.Status.toLowerCase()}`;
+                row.innerHTML = `
+                    <td>${req.EmployeeName || 'N/A'}</td>
+                    <td>${req.LeaveType || 'N/A'}</td>
+                    <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
+                    <td><span class="badge badge-${req.Status === 'Approved' ? 'success' : req.Status === 'Rejected' ? 'danger' : 'warning'}">${req.Status || 'N/A'}</span></td>
+                    <td>${actionButtons}</td>
+                `;
+                tbody.appendChild(row);
             });
         } catch (error) {
             alert(error.message);
+        }
+    }
+
+    async function handleApproval(requestId, approvalAction) {
+        try {
+            const result = await apiCall('processApproval', { requestId, approvalAction });
+            const msgDiv = document.getElementById('dashboardMessage');
+            msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            setTimeout(() => { msgDiv.innerHTML = '' }, 4000);
+        } catch(error) {
+            alert(error.message);
+        } finally {
+            loadDashboardData();
         }
     }
 
@@ -148,8 +219,4 @@
     });
 </script>
 </body>
-
 </html>
-
-
-
