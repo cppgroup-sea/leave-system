@@ -30,26 +30,33 @@
     };
 
     // --- API Call Helper ---
-    async function apiCall(action, payload = {}) {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'omit',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: action,
-                token: session.token,
-                ...payload
-            }),
-            redirect: 'follow'
-        });
-        const result = await response.json();
-        if (result.status === 'error') {
-            throw new Error(result.message);
-        }
-        return result.data;
-    }
+   async function apiCall(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      if (data.status === 'error') {
+        reject(new Error(data.message));
+      } else {
+        resolve(data.data);
+      }
+    };
 
+    const script = document.createElement('script');
+    let queryString = `?callback=${callbackName}&action=${action}`;
+    for (const key in payload) {
+      queryString += `&${key}=${encodeURIComponent(payload[key])}`;
+    }
+    if (session.token) {
+        queryString += `&token=${encodeURIComponent(session.token)}`;
+    }
+    
+    script.src = API_URL + queryString;
+    script.onerror = () => reject(new Error('Failed to load API script.'));
+    document.body.appendChild(script);
+  });
+}
     // --- Views / Templates ---
     function renderLoginView(error = '') {
         const app = document.getElementById('app');
@@ -143,4 +150,5 @@
 </body>
 
 </html>
+
 
