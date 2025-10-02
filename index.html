@@ -181,47 +181,51 @@
         }
     }
 
-    async function loadDashboardData() {
-        try {
-            const requests = await apiCall('getDashboardData');
-            const tbody = document.getElementById('dashboard-body');
-            tbody.innerHTML = '';
-            if (requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">ไม่พบข้อมูลการลา</td></tr>';
-                return;
-            }
-            requests.forEach(req => {
-                const status = req.Status || 'N/A';
-                
-                let actionButtons = '';
-                if (session.user.isHR && status !== 'Rejected') {
-                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
-                } else if (!session.user.isHR && status === 'Pending') {
-                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
-                }
-
-                const row = document.createElement('tr');
-                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
-                
-                let statusBadge = 'warning';
-                if (status === 'Approved') statusBadge = 'success';
-                if (status === 'Rejected') statusBadge = 'danger';
-                if (status === 'Manager Approved') statusBadge = 'primary';
-
-                row.innerHTML = `
-                    <td>${req.EmployeeName || 'N/A'}</td>
-                    <td>${req.LeaveType || 'N/A'}</td>
-                    <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
-                    <td>${req.TotalDays || 'N/A'}</td>
-                    <td><span class="badge badge-${statusBadge}">${status}</span></td>
-                    <td>${actionButtons}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        } catch (error) {
-            alert('Could not load dashboard data: ' + error.message);
+   async function loadDashboardData() {
+    try {
+        const requests = await apiCall('getDashboardData');
+        const tbody = document.getElementById('dashboard-body');
+        tbody.innerHTML = '';
+        if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">ไม่พบข้อมูลการลา</td></tr>';
+            return;
         }
+        requests.forEach(req => {
+            const status = req.Status || 'N/A';
+            
+            // **REVISED LOGIC FOR ACTION BUTTONS**
+            let actionButtons = '';
+            // Show buttons for Manager only if status is 'Pending'
+            const isManagerActionable = !session.user.isHR && status === 'Pending';
+            // Show buttons for HR only if status is 'Pending' or 'Manager Approved'
+            const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
+
+            if (isManagerActionable || isHRActionable) {
+                actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
+            }
+
+            const row = document.createElement('tr');
+            row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+            
+            let statusBadge = 'warning';
+            if (status === 'Approved') statusBadge = 'success';
+            if (status === 'Rejected') statusBadge = 'danger';
+            if (status === 'Manager Approved') statusBadge = 'primary';
+
+            row.innerHTML = `
+                <td>${req.EmployeeName || 'N/A'}</td>
+                <td>${req.LeaveType || 'N/A'}</td>
+                <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
+                <td>${req.TotalDays || 'N/A'}</td>
+                <td><span class="badge badge-${statusBadge}">${status}</span></td>
+                <td>${actionButtons}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        alert('Could not load dashboard data: ' + error.message);
     }
+}
 
     async function handleApproval(requestId, approvalAction) {
         try {
@@ -265,4 +269,5 @@
 </script>
 </body>
 </html>
+
 
