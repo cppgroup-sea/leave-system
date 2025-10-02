@@ -164,35 +164,42 @@
         }
     }
 
-    async function loadDashboardData() {
-        try {
-            const requests = await apiCall('getDashboardData');
-            const tbody = document.getElementById('dashboard-body');
-            tbody.innerHTML = '';
-            if (requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">ไม่พบข้อมูลการลาที่รออนุมัติ</td></tr>';
-                return;
-            }
-            requests.sort((a, b) => (a.Status === 'Pending' ? -1 : 1));
-            requests.forEach(req => {
-                const actionButtons = req.Status === 'Pending'
-                    ? `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`
-                    : '';
-                const row = document.createElement('tr');
-                row.className = `status-${req.Status.toLowerCase()}`;
-                row.innerHTML = `
-                    <td>${req.EmployeeName || 'N/A'}</td>
-                    <td>${req.LeaveType || 'N/A'}</td>
-                    <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
-                    <td><span class="badge badge-${req.Status === 'Approved' ? 'success' : req.Status === 'Rejected' ? 'danger' : 'warning'}">${req.Status || 'N/A'}</span></td>
-                    <td>${actionButtons}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        } catch (error) {
-            alert(error.message);
+   async function loadDashboardData() {
+    try {
+        const requests = await apiCall('getDashboardData');
+        const tbody = document.getElementById('dashboard-body');
+        tbody.innerHTML = '';
+        if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">ไม่พบข้อมูลการลาที่รออนุมัติ</td></tr>';
+            return;
         }
+        requests.sort((a, b) => (a.Status === 'Pending' ? -1 : 1));
+        requests.forEach(req => {
+            // --- THIS IS THE FIX ---
+            const status = req.Status || 'N/A'; // กำหนดค่าเริ่มต้นให้ status เป็น 'N/A' ถ้ามันว่าง
+            
+            const actionButtons = status === 'Pending'
+                ? `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`
+                : '';
+            const row = document.createElement('tr');
+            
+            // ใช้ตัวแปร status ที่ปลอดภัยแล้วในการเรียก .toLowerCase()
+            row.className = `status-${status.toLowerCase()}`;
+            
+            row.innerHTML = `
+                <td>${req.EmployeeName || 'N/A'}</td>
+                <td>${req.LeaveType || 'N/A'}</td>
+                <td>${(req.StartDate && req.EndDate) ? `${req.StartDate} - ${req.EndDate}` : 'N/A'}</td>
+                <td><span class="badge badge-${status === 'Approved' ? 'success' : status === 'Rejected' ? 'danger' : 'warning'}">${status}</span></td>
+                <td>${actionButtons}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        // Now it will show a more user-friendly alert
+        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
     }
+}
 
     async function handleApproval(requestId, approvalAction) {
         try {
@@ -220,3 +227,4 @@
 </script>
 </body>
 </html>
+
