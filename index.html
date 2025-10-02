@@ -78,7 +78,7 @@
         app.innerHTML = `
             <div class="view-container" style="max-width: 600px; margin: auto;">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2>📝 แบบฟอร์มยื่นใบลา</h2>
+                    <h2>📝 แบบฟอร์มยื่นใบลา 📝</h2>
                     <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
                 </div>
                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
@@ -106,7 +106,7 @@
     
     function renderDashboardView() {
         const app = document.getElementById('app');
-        const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด)" : "👑 แดชบอร์ดอนุมัติวันลา";
+        const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด) 👑" : "👑 แดชบอร์ดอนุมัติวันลา 👑";
         app.innerHTML = `
             <div class="view-container">
                  <div class="d-flex justify-content-between align-items-center"><h2>${title}</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
@@ -258,3 +258,4 @@
 </script>
 </body>
 </html>
+
