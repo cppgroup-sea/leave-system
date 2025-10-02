@@ -57,11 +57,15 @@
     }
 
     function renderLoginView(error = '') {
-        const app = document.getElementById('app');
-        app.innerHTML = `
-            <div class="view-container login-container">
-                <h2>ระบบบันทึกวันลา</h2>
-                <form id="loginForm">
+    const app = document.getElementById('app');
+    app.innerHTML = `
+        <div class="view-container login-container">
+
+            <div class="text-center mb-4">
+                <img src="https://drive.google.com/file/d/1KN-uwCWB15_nNNkNHvoZarPr_WlTRy1R/view?usp=sharing" alt="Company Logo" style="max-width: 150px; height: auto;">
+            </div>
+            <h2>ระบบบันทึกวันลา</h2>
+            <form id="loginForm">
                     <div class="form-group"><label for="email">อีเมลพนักงาน</label><input type="email" class="form-control" id="email" required></div>
                     <div class="form-group"><label for="pin">รหัส PIN</label><input type="password" class="form-control" id="pin" required></div>
                     ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
@@ -286,3 +290,4 @@
 </script>
 </body>
 </html>
+
