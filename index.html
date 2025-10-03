@@ -29,7 +29,7 @@
         </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzM7xGtApi_Ew2uS7TQ_uwP-K4PMaPZoeqSqXAnVIGN4Zcp-SsJrzCLuN6SzR7VrpuD/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzt-I3OhDkVzKpf_Rb_Jl_G3QgG8tyYuYoGYCnytPs08OHUpyNk0AHQEMUuUM5SXho2/exec";
     let session = { token: null, user: null };
 
     async function apiCall(action, payload = {}) {
@@ -57,15 +57,14 @@
     }
 
     function renderLoginView(error = '') {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div class="view-container login-container">
-
-            <div class="text-center mb-4">
-                <img src="https://i.postimg.cc/jSvqhvvQ/CPP-Group-Logo.png" alt="Company Logo" style="max-width: 150px; height: auto;">
-            </div>
-            <h2>ระบบบันทึกวันลา</h2>
-            <form id="loginForm">
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="view-container login-container">
+                <div class="text-center mb-4">
+                    <img src="https://i.postimg.cc/jSvqhvvQ/CPP-Group-Logo.png" alt="Company Logo" style="max-width: 150px; height: auto;">
+                </div>
+                <h2>ระบบบันทึกวันลา</h2>
+                <form id="loginForm">
                     <div class="form-group"><label for="email">อีเมลพนักงาน</label><input type="email" class="form-control" id="email" required></div>
                     <div class="form-group"><label for="pin">รหัส PIN</label><input type="password" class="form-control" id="pin" required></div>
                     ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
@@ -81,7 +80,7 @@
         app.innerHTML = `
             <div class="view-container" style="max-width: 600px; margin: auto;">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2>📝 แบบฟอร์มยื่นใบลา 📝</h2>
+                    <h2>📝 แบบฟอร์มยื่นใบลา</h2>
                     <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
                 </div>
                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
@@ -90,7 +89,7 @@
                     <div class="form-group"><label>ช่วงเวลาที่ลา:</label><br><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="full_day" value="full_day" checked><label class="form-check-label" for="full_day">เต็มวัน</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="half_day_morning" value="half_day_morning"><label class="form-check-label" for="half_day_morning">ครึ่งวันเช้า</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="leavePeriod" id="half_day_afternoon" value="half_day_afternoon"><label class="form-check-label" for="half_day_afternoon">ครึ่งวันบ่าย</label></div></div>
                     <div class="form-group"><label for="leaveType">ประเภทการลา</label><select id="leaveType" class="form-control" required><option value="">-- เลือกประเภท --</option><option value="ลากิจ">ลากิจ</option><option value="ลาพักร้อน">ลาพักร้อน</option><option value="ลาป่วย">ลาป่วย</option></select></div>
                     <div class="form-row">
-                        <div class="form-group col-md-6"><label for="startDate">วันที่ลา</label><input type="date" class="form-control" id="startDate" required></div>
+                        <div class="form-group col-md-6"><label for="startDate" id="startDateLabel">วันที่เริ่มลา</label><input type="date" class="form-control" id="startDate" required></div>
                         <div class="form-group col-md-6" id="end-date-group"><label for="endDate">ถึงวันที่</label><input type="date" class="form-control" id="endDate" required></div>
                     </div>
                     <div class="form-group"><label for="reason">เหตุผลการลา</label><textarea class="form-control" id="reason" rows="3" required></textarea></div>
@@ -98,6 +97,7 @@
                 </form>
                 <div id="statusMessage" class="mt-3"></div>
                 <div class="nav-links">
+                    <a href="#" onclick="renderHistoryView()">ดูประวัติการลาของฉัน</a>
                     ${(session.user.isManager || session.user.isHR) ? '<a href="#" onclick="renderDashboardView()">ไปที่หน้าแดชบอร์ด</a>' : ''}
                 </div>
             </div>
@@ -106,7 +106,7 @@
         document.getElementsByName('leavePeriod').forEach(radio => {
             radio.addEventListener('change', function() {
                 const endDateGroup = document.getElementById('end-date-group');
-                const startDateLabel = document.querySelector('label[for="startDate"]');
+                const startDateLabel = document.getElementById('startDateLabel');
                 if (this.value === 'full_day') {
                     endDateGroup.style.display = 'block';
                     startDateLabel.innerText = 'วันที่เริ่มลา';
@@ -121,7 +121,7 @@
     
     function renderDashboardView() {
         const app = document.getElementById('app');
-        const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด) 👑" : "👑 แดชบอร์ดอนุมัติวันลา 👑";
+        const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด)" : "👑 แดชบอร์ดอนุมัติวันลา";
         app.innerHTML = `
             <div class="view-container">
                  <div class="d-flex justify-content-between align-items-center">
@@ -149,7 +149,7 @@
         const currentYear = date.getFullYear();
         app.innerHTML = `
             <div class="view-container">
-                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา 📅</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                 <div class="d-flex justify-content-between align-items-center my-3">
                     <button id="prev-month" class="btn btn-secondary">‹ เดือนก่อน</button>
                     <h4>${monthNames[currentMonth]} ${currentYear + 543}</h4>
@@ -162,6 +162,27 @@
         document.getElementById('prev-month').onclick = () => renderCalendarView(new Date(currentYear, currentMonth - 1));
         document.getElementById('next-month').onclick = () => renderCalendarView(new Date(currentYear, currentMonth + 1));
         buildCalendar(currentYear, currentMonth);
+    }
+
+    function renderHistoryView() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="view-container">
+                 <div class="d-flex justify-content-between align-items-center">
+                    <h2>📜 ประวัติการลาของฉัน</h2>
+                    <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+                 </div>
+                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
+                 <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark"><tr><th>วันที่ยื่นเรื่อง</th><th>ประเภท</th><th>ช่วงวันที่ลา</th><th>จำนวนวัน</th><th>สถานะ</th></tr></thead>
+                        <tbody id="history-body"><tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr></tbody>
+                    </table>
+                 </div>
+                 <div class="nav-links"><a href="#" onclick="renderLeaveFormView()">กลับไปหน้ายื่นใบลา</a></div>
+            </div>
+        `;
+        loadLeaveHistory();
     }
     
     async function buildCalendar(year, month) {
@@ -206,7 +227,7 @@
         const statusMessage = document.getElementById('statusMessage');
         submitBtn.disabled = true; submitBtn.innerText = "กำลังส่ง..."; statusMessage.innerHTML = '';
         try {
-            const formData = { startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value, leaveType: document.getElementById('leaveType').value, reason: document.getElementById('reason').value, leavePeriod: document.querySelector('input[name="leavePeriod"]:checked').value };
+            const formData = { startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value || document.getElementById('startDate').value, leaveType: document.getElementById('leaveType').value, reason: document.getElementById('reason').value, leavePeriod: document.querySelector('input[name="leavePeriod"]:checked').value };
             const result = await apiCall('submitLeaveRequest', { formData });
             statusMessage.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
             document.getElementById('leaveForm').reset();
@@ -238,7 +259,6 @@
                 if (status === 'Approved') statusBadge = 'success';
                 if (status === 'Rejected') statusBadge = 'danger';
                 if (status === 'Manager Approved') statusBadge = 'primary';
-
                 let periodText = "";
                 if (req.LeavePeriod === 'half_day_morning') periodText = " (ครึ่งเช้า)";
                 if (req.LeavePeriod === 'half_day_afternoon') periodText = " (ครึ่งบ่าย)";
@@ -246,11 +266,38 @@
                 if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
                     dateDisplay = `${req.StartDate} - ${req.EndDate}`;
                 }
-
                 row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load dashboard data: ' + error.message); }
+    }
+    
+    async function loadLeaveHistory() {
+        try {
+            const history = await apiCall('getLeaveHistory');
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            if (history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">ยังไม่มีประวัติการลา</td></tr>';
+                return;
+            }
+            history.forEach(req => {
+                const status = req.Status || 'N/A';
+                let periodText = "";
+                if (req.LeavePeriod === 'half_day_morning') periodText = " (ครึ่งเช้า)";
+                if (req.LeavePeriod === 'half_day_afternoon') periodText = " (ครึ่งบ่าย)";
+                let dateDisplay = req.StartDate;
+                if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) { dateDisplay = `${req.StartDate} - ${req.EndDate}`; }
+                let statusBadge = 'warning';
+                if (status === 'Approved') statusBadge = 'success';
+                if (status === 'Rejected') statusBadge = 'danger';
+                if (status === 'Manager Approved') statusBadge = 'primary';
+                const row = document.createElement('tr');
+                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+                row.innerHTML = `<td>${req.Timestamp ? new Date(req.Timestamp).toLocaleDateString('th-TH') : 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
+                tbody.appendChild(row);
+            });
+        } catch (error) { alert('Could not load leave history: ' + error.message); }
     }
 
     async function handleApproval(requestId, approvalAction) {
@@ -290,10 +337,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
