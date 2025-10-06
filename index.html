@@ -238,40 +238,64 @@
     }
 
     async function loadDashboardData() {
-        try {
-            const requests = await apiCall('getDashboardData');
-            const tbody = document.getElementById('dashboard-body');
-            tbody.innerHTML = '';
-            if (requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">ไม่พบข้อมูลการลา</td></tr>';
-                return;
+    try {
+        const requests = await apiCall('getDashboardData');
+        const tbody = document.getElementById('dashboard-body');
+        tbody.innerHTML = '';
+        if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">ไม่พบข้อมูลการลา</td></tr>';
+            return;
+        }
+
+        // --- NEW SORTING LOGIC ---
+        requests.sort((a, b) => {
+            const statusOrder = {
+                "Pending": 1,
+                "Manager Approved": 2,
+                "Approved": 3,
+                "Rejected": 4
+            };
+
+            const aStatus = statusOrder[a.Status] || 5; // Give a low priority if status is unknown
+            const bStatus = statusOrder[b.Status] || 5;
+
+            if (aStatus < bStatus) return -1;
+            if (aStatus > bStatus) return 1;
+
+            // If statuses are the same, sort by newest request first
+            // Note: This relies on the backend already sorting by date, which it does.
+            return 0;
+        });
+        // --- END OF NEW SORTING LOGIC ---
+
+        requests.forEach(req => {
+            const status = req.Status || 'N/A';
+            let actionButtons = '';
+            const isManagerActionable = !session.user.isHR && status === 'Pending';
+            const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
+            if (isManagerActionable || isHRActionable) {
+                actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
             }
-            requests.forEach(req => {
-                const status = req.Status || 'N/A';
-                let actionButtons = '';
-                const isManagerActionable = !session.user.isHR && status === 'Pending';
-                const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
-                if (isManagerActionable || isHRActionable) {
-                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
-                }
-                const row = document.createElement('tr');
-                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
-                let statusBadge = 'warning';
-                if (status === 'Approved') statusBadge = 'success';
-                if (status === 'Rejected') statusBadge = 'danger';
-                if (status === 'Manager Approved') statusBadge = 'primary';
-                let periodText = "";
-                if (req.LeavePeriod === 'half_day_morning') periodText = " (ครึ่งเช้า)";
-                if (req.LeavePeriod === 'half_day_afternoon') periodText = " (ครึ่งบ่าย)";
-                let dateDisplay = req.StartDate;
-                if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
-                    dateDisplay = `${req.StartDate} - ${req.EndDate}`;
-                }
-                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
-                tbody.appendChild(row);
-            });
-        } catch (error) { alert('Could not load dashboard data: ' + error.message); }
+            const row = document.createElement('tr');
+            row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+            let statusBadge = 'warning';
+            if (status === 'Approved') statusBadge = 'success';
+            if (status === 'Rejected') statusBadge = 'danger';
+            if (status === 'Manager Approved') statusBadge = 'primary';
+            let periodText = "";
+            if (req.LeavePeriod === 'half_day_morning') periodText = " (ครึ่งเช้า)";
+            if (req.LeavePeriod === 'half_day_afternoon') periodText = " (ครึ่งบ่าย)";
+            let dateDisplay = req.StartDate;
+            if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
+                dateDisplay = `${req.StartDate} - ${req.EndDate}`;
+            }
+            row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        alert('Could not load dashboard data: ' + error.message);
     }
+}
     
     async function loadLeaveHistory() {
         try {
@@ -338,4 +362,5 @@
 </script>
 </body>
 </html>
+
 
