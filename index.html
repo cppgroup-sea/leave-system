@@ -29,7 +29,7 @@
         </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbx0K3oCvwRKCFIPq5TMBGlVphURzMeuBe6dWWkkAZSs4IZifSuZ6aEBwWt5JX_xf1l5/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzCRZHTa-XxS59LxvlEL2_mpBwtCL7get1XoLQ53DZAhAXR43lxOWz5nYWvYA1odkg1/exec";
     let session = { token: null, user: null };
 
     async function apiCall(action, payload = {}) {
@@ -295,7 +295,7 @@
                 if (status === 'Manager Approved') statusBadge = 'primary';
                 const row = document.createElement('tr');
                 row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
-                row.innerHTML = `<td>${req.Timestamp ? new Date(req.Timestamp).toLocaleDateString('th-TH') : 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
+                row.innerHTML = `<td>${req.Timestamp || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load leave history: ' + error.message); }
@@ -338,4 +338,3 @@
 </script>
 </body>
 </html>
-
