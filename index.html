@@ -29,7 +29,7 @@
         </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwlHgFOXCDq8K-RcLcvmWpJFvV285hacQ2hinlb-uQpDjkLQPcHMLfjxvefl_n7IUEa/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbztoIJdqpzjtzL5vEsUz-LxHiYDwSgvWwx9-RxbVYf2imiAWTSzFL3dqFH-d6gIa4cW/exec";
     let session = { token: null, user: null };
 
     async function apiCall(action, payload = {}) {
@@ -246,6 +246,14 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center">ไม่พบข้อมูลการลา</td></tr>';
                 return;
             }
+            requests.sort((a, b) => {
+                const statusOrder = {"Pending": 1, "Manager Approved": 2, "Approved": 3, "Rejected": 4};
+                const aStatus = statusOrder[a.Status] || 5;
+                const bStatus = statusOrder[b.Status] || 5;
+                if (aStatus < bStatus) return -1;
+                if (aStatus > bStatus) return 1;
+                return b.originalTimestamp - a.originalTimestamp;
+            });
             requests.forEach(req => {
                 const status = req.Status || 'N/A';
                 let actionButtons = '';
@@ -338,4 +346,3 @@
 </script>
 </body>
 </html>
-
