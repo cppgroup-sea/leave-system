@@ -44,7 +44,7 @@
         const script = document.createElement('script');
         let queryString = `?callback=${callbackName}&action=${action}`;
         for (const key in payload) {
-            if (key === 'employeeId') { // Use employeeId directly
+            if (key === 'employeeId') {
                  queryString += `&employeeId=${encodeURIComponent(payload[key])}`;
             } else if (typeof payload[key] === 'object' && payload[key] !== null) {
                  queryString += `&${key}=${encodeURIComponent(JSON.stringify(payload[key]))}`;
@@ -263,7 +263,7 @@
                 const isManagerActionable = !session.user.isHR && status === 'Pending';
                 const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
                 if (isManagerActionable || isHRActionable) {
-                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval('${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval('${req.RequestID}', 'reject')">Reject</button>`;
+                    actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval(this, '${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval(this, '${req.RequestID}', 'reject')">Reject</button>`;
                 }
                 const row = document.createElement('tr');
                 row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
@@ -278,7 +278,7 @@
                 if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
                     dateDisplay = `${req.StartDate} - ${req.EndDate}`;
                 }
-                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td><td>${actionButtons}</td>`;
+                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td class="status-cell"><span class="badge badge-${statusBadge}">${status}</span></td><td class="action-cell">${actionButtons}</td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load dashboard data: ' + error.message); }
@@ -312,14 +312,37 @@
         } catch (error) { alert('Could not load leave history: ' + error.message); }
     }
 
-    async function handleApproval(requestId, approvalAction) {
+    async function handleApproval(buttonElement, requestId, approvalAction) {
+        const row = buttonElement.closest('tr');
+        const statusCell = row.querySelector('.status-cell');
+        const actionCell = row.querySelector('.action-cell');
+        
+        // Optimistic UI Update
+        actionCell.innerHTML = "Processing...";
+        const newStatus = approvalAction === 'approve' ? (session.user.isHR ? 'Approved' : 'Manager Approved') : 'Rejected';
+        const newStatusBadge = approvalAction === 'approve' ? (session.user.isHR ? 'success' : 'primary') : 'danger';
+        const newRowClass = `status-${newStatus.replace(/\s+/g, '-').toLowerCase()}`;
+        
+        statusCell.innerHTML = `<span class="badge badge-${newStatusBadge}">${newStatus}</span>`;
+        row.className = newRowClass;
+
+        // Send request to backend in the background
         try {
             const result = await apiCall('processApproval', { requestId, approvalAction });
             const msgDiv = document.getElementById('dashboardMessage');
             msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
             setTimeout(() => { msgDiv.innerHTML = '' }, 4000);
-        } catch(error) { alert(error.message); } 
-        finally { loadDashboardData(); }
+            
+            // If the action was successful, just remove the buttons. The status is already updated.
+            if (newStatus === 'Approved' || newStatus === 'Rejected') {
+                actionCell.innerHTML = "";
+            }
+
+        } catch(error) {
+            alert("เกิดข้อผิดพลาด: " + error.message);
+            // If it fails, reload the dashboard to get the correct state from the server
+            loadDashboardData();
+        } 
     }
 
     async function loadLeaveBalance() {
