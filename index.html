@@ -29,7 +29,7 @@
         </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwy88COuHO6J72iNLg8L_mcjMkOeB4rWPMUoRwnVdhw9VA-3M3P1ddbQs2mwEQapoVx/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwVR9hngbV9nXjxtkRbPIgAxB2naQobCq42_ZVIFqymmmKmNYXksdDxptyROwvQxDwG/exec";
     let session = { token: null, user: null };
 
     async function apiCall(action, payload = {}) {
@@ -43,7 +43,10 @@
         const script = document.createElement('script');
         let queryString = `?callback=${callbackName}&action=${action}`;
         for (const key in payload) {
-            if (typeof payload[key] === 'object' && payload[key] !== null) {
+            // Updated check for Employee ID
+            if (key === 'employeeId') {
+                 queryString += `&employeeId=${encodeURIComponent(payload[key])}`;
+            } else if (typeof payload[key] === 'object' && payload[key] !== null) {
                  queryString += `&${key}=${encodeURIComponent(JSON.stringify(payload[key]))}`;
             } else {
                  queryString += `&${key}=${encodeURIComponent(payload[key])}`;
@@ -65,8 +68,14 @@
                 </div>
                 <h2>ระบบบันทึกวันลา</h2>
                 <form id="loginForm">
-                    <div class="form-group"><label for="email">อีเมลพนักงาน</label><input type="email" class="form-control" id="email" required></div>
-                    <div class="form-group"><label for="pin">รหัส PIN</label><input type="password" class="form-control" id="pin" required></div>
+                    <div class="form-group">
+                        <label for="employeeId">รหัสพนักงาน</label> 
+                        <input type="text" class="form-control" id="employeeId" required> 
+                    </div>
+                    <div class="form-group">
+                        <label for="pin">รหัส PIN</label>
+                        <input type="password" class="form-control" id="pin" required>
+                    </div>
                     ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
                     <button type="submit" id="loginBtn" class="btn btn-primary btn-block">เข้าสู่ระบบ</button>
                 </form>
@@ -213,13 +222,15 @@
         const loginBtn = document.getElementById('loginBtn');
         loginBtn.disabled = true; loginBtn.innerText = "กำลังตรวจสอบ...";
         try {
-            const email = document.getElementById('email').value;
+            const employeeId = document.getElementById('employeeId').value; // Use employeeId
             const pin = document.getElementById('pin').value;
-            const data = await apiCall('loginWithPin', { email, pin });
+            const data = await apiCall('loginWithPin', { employeeId, pin }); // Send employeeId
             session.token = data.token;
             session.user = data;
             renderLeaveFormView();
-        } catch (error) { renderLoginView(error.message); }
+        } catch (error) { 
+            renderLoginView(error.message); 
+        }
     }
     
     async function handleLeaveSubmit(e) {
@@ -346,6 +357,3 @@
 </script>
 </body>
 </html>
-
-
-
