@@ -30,7 +30,7 @@
     </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxFoXmwC1r-T1D_X8posl-oWxivnu-MDVI50P6M1GXgHMhlaZktM_kKoQEYeIWuILM/exec"; // **สำคัญ!** ใส่ URL ล่าสุดของคุณที่นี่
+    const API_URL = "https://script.google.com/macros/s/AKfycbxFoXmwC1r-T1D_X8posl-oWxivnu-MDVI50P6M1GXgHMhlaZktM_kKoQEYeIWuILM/exec"; // **สำคัญ!** ใส่ URL ล่าสุดของคุณ
     let session = { token: null, user: null };
 
     // --- API Call Helper (JSONP) ---
@@ -38,7 +38,7 @@
       return new Promise((resolve, reject) => {
         const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
         window[callbackName] = function(res) {
-          try { document.body.removeChild(script); } catch(e){} // Clean up script tag
+          try { document.body.removeChild(script); } catch(e){} 
           delete window[callbackName];
           if (res.status === 'error') { reject(new Error(res.message)); } else { resolve(res.data); }
         };
@@ -78,7 +78,6 @@
                 </form>
             </div>
         `;
-        // Attach event listener AFTER innerHTML is set
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
     }
 
@@ -104,14 +103,17 @@
                 </form>
                 <div id="statusMessage" class="mt-3"></div>
                 <div class="nav-links">
-                    <a href="#" onclick="renderHistoryView()">ดูประวัติการลาของฉัน</a>
-                    ${(session.user.isManager || session.user.isHR) ? '<a href="#" onclick="renderDashboardView()">ไปที่หน้าแดชบอร์ด</a>' : ''}
+                    <a href="#" id="historyLink">ดูประวัติการลาของฉัน</a>
+                    ${(session.user.isManager || session.user.isHR) ? '<a href="#" id="dashboardLink">ไปที่หน้าแดชบอร์ด</a>' : ''}
                 </div>
             </div>
         `;
-        // Attach event listeners AFTER innerHTML is set
         document.getElementById('leaveForm').addEventListener('submit', handleLeaveSubmit);
         document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('historyLink').addEventListener('click', renderHistoryView);
+        if (session.user.isManager || session.user.isHR) {
+            document.getElementById('dashboardLink').addEventListener('click', renderDashboardView);
+        }
         document.getElementsByName('leavePeriod').forEach(radio => {
             radio.addEventListener('change', function() {
                 const endDateGroup = document.getElementById('end-date-group');
@@ -128,9 +130,11 @@
         const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด)" : "👑 แดชบอร์ดอนุมัติวันลา";
         app.innerHTML = `
             <div class="view-container">
-                 <div class="d-flex justify-content-between align-items-center">
+                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2>${title}</h2>
                     <div>
+                        ${(session.user.isManager || session.user.isHR) ? '<button id="downloadMonthlyBtn" class="btn btn-secondary btn-sm mr-2">โหลดรายงาน (เดือน)</button>' : ''}
+                        ${(session.user.isManager || session.user.isHR) ? '<button id="downloadYearlyBtn" class="btn btn-secondary btn-sm mr-2">โหลดรายงาน (ปี)</button>' : ''}
                         ${(session.user.isManager || session.user.isHR) ? '<button id="calendarBtn" class="btn btn-info btn-sm mr-2">ดูปฏิทิน</button>' : ''}
                         <button id="logoutBtn" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
                     </div>
@@ -146,11 +150,12 @@
                  <div class="nav-links"><a href="#" id="backToFormBtn">กลับไปหน้าฟอร์มยื่นลา</a></div>
             </div>
         `;
-        // Attach event listeners AFTER innerHTML is set
         document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('backToFormBtn').addEventListener('click', renderLeaveFormView);
         if (session.user.isManager || session.user.isHR) {
             document.getElementById('calendarBtn').addEventListener('click', renderCalendarView);
+            document.getElementById('downloadMonthlyBtn').addEventListener('click', () => handleDownloadReport('monthly'));
+            document.getElementById('downloadYearlyBtn').addEventListener('click', () => handleDownloadReport('yearly'));
         }
         loadDashboardData();
     }
@@ -172,7 +177,6 @@
                 <div class="nav-links"><a href="#" id="backToDashboardBtn">กลับไปหน้าตาราง</a></div>
             </div>
         `;
-        // Attach event listeners AFTER innerHTML is set
         document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('backToDashboardBtn').addEventListener('click', renderDashboardView);
         document.getElementById('prev-month').onclick = () => renderCalendarView(new Date(currentYear, currentMonth - 1));
@@ -198,7 +202,6 @@
                  <div class="nav-links"><a href="#" id="backToFormBtn">กลับไปหน้ายื่นใบลา</a></div>
             </div>
         `;
-        // Attach event listeners AFTER innerHTML is set
         document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('backToFormBtn').addEventListener('click', renderLeaveFormView);
         loadLeaveHistory();
@@ -208,11 +211,12 @@
 
     async function buildCalendar(year, month) {
         const calendarDiv = document.querySelector('.calendar');
+        if (!calendarDiv) return; 
         try {
             const events = await apiCall('getCalendarData');
             const firstDay = new Date(year, month).getDay();
             const daysInMonth = 32 - new Date(year, month, 32).getDate();
-            calendarDiv.innerHTML = '<div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div>'; // Reset headers too
+            calendarDiv.innerHTML = '<div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div>'; 
             for (let i = 0; i < firstDay; i++) { calendarDiv.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>'); }
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -273,8 +277,9 @@
                 const bStatus = statusOrder[b.Status] || 5;
                 if (aStatus < bStatus) return -1;
                 if (aStatus > bStatus) return 1;
-                // Use originalTimestamp for secondary sort
-                return new Date(b.originalTimestamp) - new Date(a.originalTimestamp);
+                const dateA = a.originalTimestamp ? new Date(a.originalTimestamp) : 0;
+                const dateB = b.originalTimestamp ? new Date(b.originalTimestamp) : 0;
+                return dateB - dateA; 
             });
             requests.forEach(req => {
                 const status = req.Status || 'N/A';
@@ -282,11 +287,10 @@
                 const isManagerActionable = !session.user.isHR && status === 'Pending';
                 const isHRActionable = session.user.isHR && (status === 'Pending' || status === 'Manager Approved');
                 if (isManagerActionable || isHRActionable) {
-                    // Pass 'this' element to handleApproval
                     actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval(this, '${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval(this, '${req.RequestID}', 'reject')">Reject</button>`;
                 }
                 const row = document.createElement('tr');
-                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+                row.className = `status-${typeof status === 'string' ? status.replace(/\s+/g, '-').toLowerCase() : 'unknown'}`; 
                 let statusBadge = 'warning';
                 if (status === 'Approved') statusBadge = 'success';
                 if (status === 'Rejected') statusBadge = 'danger';
@@ -298,7 +302,7 @@
                 if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
                     dateDisplay = `${req.StartDate} - ${req.EndDate}`;
                 }
-                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td class="status-cell"><span class="badge badge-${statusBadge}">${status}</span></td><td class="action-cell">${actionButtons}</td>`;
+                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay || 'N/A'}</td><td>${req.TotalDays || 'N/A'}</td><td class="status-cell"><span class="badge badge-${statusBadge}">${status}</span></td><td class="action-cell">${actionButtons}</td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load dashboard data: ' + error.message); }
@@ -325,8 +329,8 @@
                 if (status === 'Rejected') statusBadge = 'danger';
                 if (status === 'Manager Approved') statusBadge = 'primary';
                 const row = document.createElement('tr');
-                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
-                row.innerHTML = `<td>${req.Timestamp || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
+                row.className = `status-${typeof status === 'string' ? status.replace(/\s+/g, '-').toLowerCase() : 'unknown'}`;
+                row.innerHTML = `<td>${req.Timestamp || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay || 'N/A'}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load leave history: ' + error.message); }
@@ -334,41 +338,67 @@
 
     async function handleApproval(buttonElement, requestId, approvalAction) {
         const row = buttonElement.closest('tr');
-        if (!row) return; // Should not happen
+        if (!row) return; 
         const statusCell = row.querySelector('.status-cell');
         const actionCell = row.querySelector('.action-cell');
         
-        // Optimistic UI Update
-        if (actionCell) actionCell.innerHTML = "Processing..."; // Check if actionCell exists
+        if (actionCell) actionCell.innerHTML = "Processing..."; 
         
         const newStatus = approvalAction === 'approve' ? (session.user.isHR ? 'Approved' : 'Manager Approved') : 'Rejected';
         const newStatusBadge = approvalAction === 'approve' ? (session.user.isHR ? 'success' : 'primary') : 'danger';
         const newRowClass = `status-${newStatus.replace(/\s+/g, '-').toLowerCase()}`;
         
-        if (statusCell) statusCell.innerHTML = `<span class="badge badge-${newStatusBadge}">${newStatus}</span>`; // Check if statusCell exists
+        if (statusCell) statusCell.innerHTML = `<span class="badge badge-${newStatusBadge}">${newStatus}</span>`; 
         row.className = newRowClass;
         
         if (newStatus === 'Approved' || newStatus === 'Rejected') {
              if (actionCell) actionCell.innerHTML = "";
         }
 
-        // Send request to backend
         try {
             const result = await apiCall('processApproval', { requestId, approvalAction });
             const msgDiv = document.getElementById('dashboardMessage');
-            if (msgDiv) msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`; // Check if msgDiv exists
+            if (msgDiv) msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`; 
             setTimeout(() => { if (msgDiv) msgDiv.innerHTML = '' }, 4000);
             
-            // Reload only if necessary (e.g., manager approved, now HR needs to see)
-            if(newStatus === 'Manager Approved' && session.user.isHR) {
-                 loadDashboardData(); 
-            } else if (newStatus === 'Approved' || newStatus === 'Rejected') {
-                 if (actionCell) actionCell.innerHTML = ""; // Ensure buttons gone
-            }
+             if(newStatus === 'Manager Approved' && session.user.isHR) { loadDashboardData(); } 
+             else if (newStatus === 'Approved' || newStatus === 'Rejected') { if (actionCell) actionCell.innerHTML = ""; }
+
         } catch(error) {
             alert("เกิดข้อผิดพลาด: " + error.message);
-            loadDashboardData(); // Reload if error
+            loadDashboardData(); 
         } 
+    }
+
+    // *** ADDED FUNCTION ***
+    async function handleDownloadReport(period) {
+        const buttonText = period === 'monthly' ? 'โหลดรายงาน (เดือน)' : 'โหลดรายงาน (ปี)';
+        const button = event.target; 
+        button.disabled = true;
+        button.innerText = 'กำลังสร้าง...';
+        try {
+            const csvContent = await apiCall('getLeaveReportCsv', { period });
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const fileName = period === 'yearly' ? `leave_report_${year}.csv` : `leave_report_${year}_${month}.csv`;
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            alert('ไม่สามารถสร้างรายงานได้: ' + error.message);
+        } finally {
+             button.disabled = false;
+             button.innerText = buttonText;
+        }
     }
 
     async function loadLeaveBalance() {
@@ -392,14 +422,10 @@
     function logout() {
         session.token = null;
         session.user = null;
-        renderLoginView(); // Go back to login screen
+        renderLoginView();
     }
 
-    // --- INITIAL LOAD ---
-    // Make sure renderLoginView is defined before calling it
-    document.addEventListener('DOMContentLoaded', () => { 
-        renderLoginView(); 
-    });
+    document.addEventListener('DOMContentLoaded', () => { renderLoginView(); });
 </script>
 </body>
 </html>
