@@ -26,108 +26,46 @@
 </head>
 <body>
     <div class="app-container" id="app">
-        </div>
+        <!-- App content will be rendered here by JavaScript -->
+    </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwoPcFaenjQhA4KJzpQ1MPAYuBxlw6QmGelaW4kQ7Lzm_tSRlLt6FveRynThf9SNari/exec"; // **สำคัญ!** ใส่ URL ล่าสุดของคุณ
+    const API_URL = "https://script.google.com/macros/s/AKfycbxFT9VuqmqDc1Fqi4-u2pLzlrJz_ywaNCcBl2SyeqnHn57wtyMKasI4NUsNItT3HS2h/exec";
     let session = { token: null, user: null };
 
-    // --- API Call Helper (JSONP) ---
     async function apiCall(action, payload = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
         window[callbackName] = function(res) {
-          try { document.body.removeChild(script); } catch(e){} 
           delete window[callbackName];
+          document.body.removeChild(script);
           if (res.status === 'error') { reject(new Error(res.message)); } else { resolve(res.data); }
         };
         const script = document.createElement('script');
         let queryString = `?callback=${callbackName}&action=${action}`;
         for (const key in payload) {
-            if (key === 'employeeId') { queryString += `&employeeId=${encodeURIComponent(payload[key])}`; }
-            else if (typeof payload[key] === 'object' && payload[key] !== null) { queryString += `&${key}=${encodeURIComponent(JSON.stringify(payload[key]))}`; } 
-            else { queryString += `&${key}=${encodeURIComponent(payload[key])}`; }
+            if (key === 'employeeId') {
+                 queryString += `&employeeId=${encodeURIComponent(payload[key])}`;
+            } else if (typeof payload[key] === 'object' && payload[key] !== null) {
+                 queryString += `&${key}=${encodeURIComponent(JSON.stringify(payload[key]))}`;
+            } else {
+                 queryString += `&${key}=${encodeURIComponent(payload[key])}`;
+            }
         }
         if (session.token) { queryString += `&token=${encodeURIComponent(session.token)}`; }
         script.src = API_URL + queryString;
-        script.onerror = () => {
-            try { document.body.removeChild(script); } catch(e){}
-            delete window[callbackName];
-            reject(new Error('Failed to load API script. Check API_URL and deployment settings.'));
-        };
+        script.onerror = () => reject(new Error('Failed to load API script. Check API_URL and deployment settings.'));
         document.body.appendChild(script);
       });
     }
-
-    // --- Utility to attach event listeners ---
-    function attachEventListeners() {
-        // Login Form
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) loginForm.addEventListener('submit', handleLogin);
-
-        // Logout Buttons (Use class selector)
-        const logoutButtons = document.querySelectorAll('.logoutBtn'); 
-        logoutButtons.forEach(btn => btn.addEventListener('click', logout));
-
-        // Leave Form
-        const leaveForm = document.getElementById('leaveForm');
-        if (leaveForm) {
-            leaveForm.addEventListener('submit', handleLeaveSubmit);
-            document.getElementsByName('leavePeriod').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    const endDateGroup = document.getElementById('end-date-group');
-                    const startDateLabel = document.getElementById('startDateLabel');
-                    endDateGroup.style.display = (this.value === 'full_day') ? 'block' : 'none';
-                    startDateLabel.innerText = (this.value === 'full_day') ? 'วันที่เริ่มลา' : 'วันที่ลา';
-                });
-            });
-        }
-
-        // Navigation Links
-        const historyLink = document.getElementById('historyLink');
-        if (historyLink) historyLink.addEventListener('click', renderHistoryView);
-
-        const dashboardLink = document.getElementById('dashboardLink');
-        if (dashboardLink) dashboardLink.addEventListener('click', renderDashboardView);
-
-        const backToFormBtn = document.getElementById('backToFormBtn');
-        if (backToFormBtn) backToFormBtn.addEventListener('click', renderLeaveFormView);
-
-        const backToDashboardBtn = document.getElementById('backToDashboardBtn');
-        if (backToDashboardBtn) backToDashboardBtn.addEventListener('click', renderDashboardView);
-
-        // Dashboard Buttons
-        const calendarBtn = document.getElementById('calendarBtn');
-        if (calendarBtn) calendarBtn.addEventListener('click', renderCalendarView);
-
-        const downloadMonthlyBtn = document.getElementById('downloadMonthlyBtn');
-        if (downloadMonthlyBtn) downloadMonthlyBtn.addEventListener('click', () => handleDownloadReport('monthly'));
-
-        const downloadYearlyBtn = document.getElementById('downloadYearlyBtn');
-        if (downloadYearlyBtn) downloadYearlyBtn.addEventListener('click', () => handleDownloadReport('yearly'));
-
-         // Calendar Navigation (Attach dynamically)
-        const prevMonthBtn = document.getElementById('prev-month');
-        const nextMonthBtn = document.getElementById('next-month');
-        const calendarTitle = document.querySelector('.calendar-view h4'); // Target element more specifically
-
-        if (prevMonthBtn && calendarTitle) {
-            const currentDate = new Date(calendarTitle.dataset.date);
-            prevMonthBtn.onclick = () => renderCalendarView(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-        }
-        if (nextMonthBtn && calendarTitle) {
-            const currentDate = new Date(calendarTitle.dataset.date);
-            nextMonthBtn.onclick = () => renderCalendarView(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-        }
-    }
-
-    // --- VIEWS / TEMPLATES ---
 
     function renderLoginView(error = '') {
         const app = document.getElementById('app');
         app.innerHTML = `
             <div class="view-container login-container">
-                <div class="text-center mb-4"><img src="https://i.postimg.cc/jSvqhvvQ/CPP-Group-Logo.png" alt="Company Logo" style="max-width: 150px; height: auto;"></div>
+                <div class="text-center mb-4">
+                    <img src="https://i.postimg.cc/jSvqhvvQ/CPP-Group-Logo.png" alt="Company Logo" style="max-width: 150px; height: auto;">
+                </div>
                 <h2>ระบบบันทึกวันลา</h2>
                 <form id="loginForm">
                     <div class="form-group"><label for="employeeId">รหัสพนักงาน</label><input type="text" class="form-control" id="employeeId" required></div>
@@ -137,7 +75,7 @@
                 </form>
             </div>
         `;
-        attachEventListeners(); 
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
     }
 
     function renderLeaveFormView() {
@@ -146,7 +84,7 @@
             <div class="view-container" style="max-width: 600px; margin: auto;">
                 <div class="d-flex justify-content-between align-items-center">
                     <h2>📝 แบบฟอร์มยื่นใบลา</h2>
-                    <button class="logoutBtn btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+                    <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
                 </div>
                 <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
                 <div id="leave-balance" class="card mb-3"><div class="card-body">กำลังโหลดโควตาวันลา...</div></div>
@@ -162,28 +100,36 @@
                 </form>
                 <div id="statusMessage" class="mt-3"></div>
                 <div class="nav-links">
-                    <a href="#" id="historyLink">ดูประวัติการลาของฉัน</a>
-                    ${(session.user.isManager || session.user.isHR) ? '<a href="#" id="dashboardLink">ไปที่หน้าแดชบอร์ด</a>' : ''}
+                    <a href="#" onclick="renderHistoryView()">ดูประวัติการลาของฉัน</a>
+                    ${(session.user.isManager || session.user.isHR) ? '<a href="#" onclick="renderDashboardView()">ไปที่หน้าแดชบอร์ด</a>' : ''}
                 </div>
             </div>
         `;
-        attachEventListeners(); 
+        document.getElementById('leaveForm').addEventListener('submit', handleLeaveSubmit);
+        document.getElementsByName('leavePeriod').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const endDateGroup = document.getElementById('end-date-group');
+                const startDateLabel = document.getElementById('startDateLabel');
+                if (this.value === 'full_day') {
+                    endDateGroup.style.display = 'block';
+                    startDateLabel.innerText = 'วันที่เริ่มลา';
+                } else {
+                    endDateGroup.style.display = 'none';
+                    startDateLabel.innerText = 'วันที่ลา';
+                }
+            });
+        });
         loadLeaveBalance();
     }
     
     function renderDashboardView() {
         const app = document.getElementById('app');
-        const title = session.user.isHR ? "👑 แดชบอร์ด HR (ข้อมูลทั้งหมด)" : "👑 แดชบอร์ดอนุมัติวันลา";
+        const title = session.user.isHR ? "👑 แดชบอร์ด (ข้อมูลทั้งหมด)" : "👑 แดชบอร์ดอนุมัติวันลา";
         app.innerHTML = `
             <div class="view-container">
-                 <div class="d-flex justify-content-between align-items-center mb-3">
+                 <div class="d-flex justify-content-between align-items-center">
                     <h2>${title}</h2>
-                    <div>
-                        ${(session.user.isManager || session.user.isHR) ? '<button id="downloadMonthlyBtn" class="btn btn-secondary btn-sm mr-2">โหลดรายงาน (เดือน)</button>' : ''}
-                        ${(session.user.isManager || session.user.isHR) ? '<button id="downloadYearlyBtn" class="btn btn-secondary btn-sm mr-2">โหลดรายงาน (ปี)</button>' : ''}
-                        ${(session.user.isManager || session.user.isHR) ? '<button id="calendarBtn" class="btn btn-info btn-sm mr-2">ดูปฏิทิน</button>' : ''}
-                        <button class="logoutBtn btn btn-sm btn-outline-danger">ออกจากระบบ</button>
-                    </div>
+                    <div>${(session.user.isManager || session.user.isHR) ? '<button class="btn btn-info btn-sm mr-2" onclick="renderCalendarView()">ดูปฏิทิน</button>' : ''}<button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                  </div>
                  <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
                  <div id="dashboardMessage" class="mt-3"></div>
@@ -193,10 +139,9 @@
                         <tbody id="dashboard-body"><tr><td colspan="6" class="text-center">กำลังโหลด...</td></tr></tbody>
                     </table>
                  </div>
-                 <div class="nav-links"><a href="#" id="backToFormBtn">กลับไปหน้าฟอร์มยื่นลา</a></div>
+                 <div class="nav-links"><a href="#" onclick="renderLeaveFormView()">กลับไปหน้าฟอร์มยื่นลา</a></div>
             </div>
         `;
-        attachEventListeners(); 
         loadDashboardData();
     }
     
@@ -206,18 +151,19 @@
         const currentMonth = date.getMonth();
         const currentYear = date.getFullYear();
         app.innerHTML = `
-            <div class="view-container calendar-view"> 
-                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา</h2><button class="logoutBtn btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
+            <div class="view-container">
+                <div class="d-flex justify-content-between align-items-center"><h2>📅 ปฏิทินวันลา</h2><button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button></div>
                 <div class="d-flex justify-content-between align-items-center my-3">
                     <button id="prev-month" class="btn btn-secondary">‹ เดือนก่อน</button>
-                    <h4 data-date="${date.toISOString()}">${monthNames[currentMonth]} ${currentYear + 543}</h4>
+                    <h4>${monthNames[currentMonth]} ${currentYear + 543}</h4>
                     <button id="next-month" class="btn btn-secondary">เดือนถัดไป ›</button>
                 </div>
                 <div class="calendar"><div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div></div>
-                <div class="nav-links"><a href="#" id="backToDashboardBtn">กลับไปหน้าตาราง</a></div>
+                <div class="nav-links"><a href="#" onclick="renderDashboardView()">กลับไปหน้าตาราง</a></div>
             </div>
         `;
-        attachEventListeners(); 
+        document.getElementById('prev-month').onclick = () => renderCalendarView(new Date(currentYear, currentMonth - 1));
+        document.getElementById('next-month').onclick = () => renderCalendarView(new Date(currentYear, currentMonth + 1));
         buildCalendar(currentYear, currentMonth);
     }
 
@@ -227,7 +173,7 @@
             <div class="view-container">
                  <div class="d-flex justify-content-between align-items-center">
                     <h2>📜 ประวัติการลาของฉัน</h2>
-                    <button class="logoutBtn btn btn-sm btn-outline-danger">ออกจากระบบ</button>
+                    <button onclick="logout()" class="btn btn-sm btn-outline-danger">ออกจากระบบ</button>
                  </div>
                  <p>ผู้ใช้งาน: <strong>${session.user.name}</strong></p>
                  <div class="table-responsive">
@@ -236,23 +182,19 @@
                         <tbody id="history-body"><tr><td colspan="5" class="text-center">กำลังโหลด...</td></tr></tbody>
                     </table>
                  </div>
-                 <div class="nav-links"><a href="#" id="backToFormBtn">กลับไปหน้ายื่นใบลา</a></div>
+                 <div class="nav-links"><a href="#" onclick="renderLeaveFormView()">กลับไปหน้ายื่นใบลา</a></div>
             </div>
         `;
-        attachEventListeners(); 
         loadLeaveHistory();
     }
     
-    // --- LOGIC & EVENT HANDLERS ---
-
     async function buildCalendar(year, month) {
         const calendarDiv = document.querySelector('.calendar');
-        if (!calendarDiv) return; 
         try {
             const events = await apiCall('getCalendarData');
             const firstDay = new Date(year, month).getDay();
             const daysInMonth = 32 - new Date(year, month, 32).getDate();
-            calendarDiv.innerHTML = '<div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div>'; 
+            calendarDiv.innerHTML = '<div class="calendar-header">อา</div><div class="calendar-header">จ</div><div class="calendar-header">อ</div><div class="calendar-header">พ</div><div class="calendar-header">พฤ</div><div class="calendar-header">ศ</div><div class="calendar-header">ส</div>';
             for (let i = 0; i < firstDay; i++) { calendarDiv.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>'); }
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -313,9 +255,7 @@
                 const bStatus = statusOrder[b.Status] || 5;
                 if (aStatus < bStatus) return -1;
                 if (aStatus > bStatus) return 1;
-                const dateA = a.originalTimestamp ? new Date(a.originalTimestamp) : 0;
-                const dateB = b.originalTimestamp ? new Date(b.originalTimestamp) : 0;
-                return dateB - dateA; 
+                return new Date(b.originalTimestamp) - new Date(a.originalTimestamp);
             });
             requests.forEach(req => {
                 const status = req.Status || 'N/A';
@@ -326,7 +266,7 @@
                     actionButtons = `<button class="btn btn-sm btn-success" onclick="handleApproval(this, '${req.RequestID}', 'approve')">Approve</button> <button class="btn btn-sm btn-danger" onclick="handleApproval(this, '${req.RequestID}', 'reject')">Reject</button>`;
                 }
                 const row = document.createElement('tr');
-                row.className = `status-${typeof status === 'string' ? status.replace(/\s+/g, '-').toLowerCase() : 'unknown'}`; 
+                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
                 let statusBadge = 'warning';
                 if (status === 'Approved') statusBadge = 'success';
                 if (status === 'Rejected') statusBadge = 'danger';
@@ -338,7 +278,7 @@
                 if ((!req.LeavePeriod || req.LeavePeriod === 'full_day') && req.StartDate !== req.EndDate) {
                     dateDisplay = `${req.StartDate} - ${req.EndDate}`;
                 }
-                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay || 'N/A'}</td><td>${req.TotalDays || 'N/A'}</td><td class="status-cell"><span class="badge badge-${statusBadge}">${status}</span></td><td class="action-cell">${actionButtons}</td>`;
+                row.innerHTML = `<td>${req.EmployeeName || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td class="status-cell"><span class="badge badge-${statusBadge}">${status}</span></td><td class="action-cell">${actionButtons}</td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load dashboard data: ' + error.message); }
@@ -365,8 +305,8 @@
                 if (status === 'Rejected') statusBadge = 'danger';
                 if (status === 'Manager Approved') statusBadge = 'primary';
                 const row = document.createElement('tr');
-                row.className = `status-${typeof status === 'string' ? status.replace(/\s+/g, '-').toLowerCase() : 'unknown'}`;
-                row.innerHTML = `<td>${req.Timestamp || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay || 'N/A'}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
+                row.className = `status-${status.replace(/\s+/g, '-').toLowerCase()}`;
+                row.innerHTML = `<td>${req.Timestamp || 'N/A'}</td><td>${req.LeaveType || 'N/A'}${periodText}</td><td>${dateDisplay}</td><td>${req.TotalDays || 'N/A'}</td><td><span class="badge badge-${statusBadge}">${status}</span></td>`;
                 tbody.appendChild(row);
             });
         } catch (error) { alert('Could not load leave history: ' + error.message); }
@@ -374,59 +314,35 @@
 
     async function handleApproval(buttonElement, requestId, approvalAction) {
         const row = buttonElement.closest('tr');
-        if (!row) return; 
         const statusCell = row.querySelector('.status-cell');
         const actionCell = row.querySelector('.action-cell');
-        if (actionCell) actionCell.innerHTML = "Processing..."; 
+        
+        // Optimistic UI Update
+        actionCell.innerHTML = "Processing...";
         const newStatus = approvalAction === 'approve' ? (session.user.isHR ? 'Approved' : 'Manager Approved') : 'Rejected';
         const newStatusBadge = approvalAction === 'approve' ? (session.user.isHR ? 'success' : 'primary') : 'danger';
         const newRowClass = `status-${newStatus.replace(/\s+/g, '-').toLowerCase()}`;
-        if (statusCell) statusCell.innerHTML = `<span class="badge badge-${newStatusBadge}">${newStatus}</span>`; 
+        
+        statusCell.innerHTML = `<span class="badge badge-${newStatusBadge}">${newStatus}</span>`;
         row.className = newRowClass;
-        if (newStatus === 'Approved' || newStatus === 'Rejected') { if (actionCell) actionCell.innerHTML = ""; }
+
+        // Send request to backend in the background
         try {
             const result = await apiCall('processApproval', { requestId, approvalAction });
             const msgDiv = document.getElementById('dashboardMessage');
-            if (msgDiv) msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`; 
-            setTimeout(() => { if (msgDiv) msgDiv.innerHTML = '' }, 4000);
-            if(newStatus === 'Manager Approved' && session.user.isHR) { loadDashboardData(); } 
-            else if (newStatus === 'Approved' || newStatus === 'Rejected') { if (actionCell) actionCell.innerHTML = ""; }
+            msgDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            setTimeout(() => { msgDiv.innerHTML = '' }, 4000);
+            
+            // If the action was successful, just remove the buttons. The status is already updated.
+            if (newStatus === 'Approved' || newStatus === 'Rejected') {
+                actionCell.innerHTML = "";
+            }
+
         } catch(error) {
             alert("เกิดข้อผิดพลาด: " + error.message);
-            loadDashboardData(); 
+            // If it fails, reload the dashboard to get the correct state from the server
+            loadDashboardData();
         } 
-    }
-
-    // *** ADDED FUNCTION ***
-    async function handleDownloadReport(period) {
-        const buttonText = period === 'monthly' ? 'โหลดรายงาน (เดือน)' : 'โหลดรายงาน (ปี)';
-        const button = event.target; 
-        if (!button) return; // Exit if button not found
-        button.disabled = true;
-        button.innerText = 'กำลังสร้าง...';
-        try {
-            const csvContent = await apiCall('getLeaveReportCsv', { period });
-            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const fileName = period === 'yearly' ? `leave_report_${year}.csv` : `leave_report_${year}_${month}.csv`;
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            alert('ไม่สามารถสร้างรายงานได้: ' + error.message);
-        } finally {
-             button.disabled = false;
-             button.innerText = buttonText;
-        }
     }
 
     async function loadLeaveBalance() {
@@ -442,8 +358,7 @@
                 </div>
             `;
         } catch (error) {
-            const balanceDiv = document.getElementById('leave-balance');
-            if(balanceDiv) balanceDiv.innerHTML = '<div class="card-body text-danger">ไม่สามารถโหลดโควตาวันลาได้</div>';
+            document.getElementById('leave-balance').innerHTML = '<div class="card-body text-danger">ไม่สามารถโหลดโควตาวันลาได้</div>';
         }
     }
 
@@ -453,8 +368,10 @@
         renderLoginView();
     }
 
-    // --- Initial Load ---
     document.addEventListener('DOMContentLoaded', () => { renderLoginView(); });
 </script>
 </body>
 </html>
+
+
+
